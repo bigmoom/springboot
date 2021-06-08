@@ -12,7 +12,7 @@
 
 ### 使用示例
 
-[程序源码]()
+[程序源码](https://github.com/bigmoom/springboot/tree/main/springboot%E6%95%B4%E5%90%88mybatis)
 
 ##### 建表
 
