@@ -18,9 +18,11 @@ import java.util.LinkedList;
 @Service
 public class CustomerServiceImpl implements CustomerService {
 
+//    注入数据仓库
     @Autowired
     private CustomerRepository customerRepository;
 
+//    分页操作
     @Override
     public Page<Customer> getAll(Integer pageNum, Integer pageSize) {
         Pageable pageable = PageRequest.of(pageNum,pageSize);
@@ -30,11 +32,13 @@ public class CustomerServiceImpl implements CustomerService {
         return page;
     }
 
+//    对数据库修改之后的保存操作
     @Override
     public Customer save(Customer customer) {
        return customerRepository.save(customer);
     }
 
+//    查询操作
     @Override
     public LinkedList<Customer> searchByName(String name) {
         return customerRepository.findByName(name);
