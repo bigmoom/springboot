@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cwh.springboot.springboot_mybatis.dao.mapper.CustomerMapper">
+<!--    构建映射map-->
+    <resultMap id ="CustomerMap" type="com.cwh.springboot.springboot_mybatis.dao.entity.Customer">
+<!--           id标明为主键 column标明数据库中对应列明 property标明实体类中属性 -->
+        <id column="id" property="id" javaType="Long" />
+        <result column="name" property="name" javaType="String" />
+        <result column="age" property="age" javaType="Integer"/>
+        <result column="create_time" property="createTime" javaType="Date" />
+        <result column="modify_time" property="modifyTime" javaType="Date"/>
+    </resultMap>
+<!--    自定义sql语句，避免重复使用-->
+    <sql id="Customer_po">
+        id , name ,age
+    </sql>
+
+    <select id="getAllCustomer" resultMap="CustomerMap">
+        select * from customer;
+    </select>
+
+    <select id="getCustomerByName" resultMap="CustomerMap" parameterType="java.lang.String">
+        select * from customer where name=#{name};
+    </select>
+
+    <insert id="addCustomer"  parameterType="Customer">
+        insert into customer (name, age ,create_time,modify_time)
+        values(#{customer.name},#{customer.age},now(),now());
+    </insert>
+
+    <update id="updateCustomer" parameterType="Customer">
+        update customer
+        set name =#{customer.name},age =#{customer.age},modify_time =now()
+        where id = #{customer.id};
+    </update>
+
+    <delete id="deleteAllCustomer" >
+        delete from customer;
+    </delete>
+
+    <delete id="deleteCustomerById"  parameterType="Integer">
+        delete from customer where id=#{id};
+    </delete>
+</mapper>
