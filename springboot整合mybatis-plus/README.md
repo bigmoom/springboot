@@ -235,8 +235,6 @@ public enum ResultCode {
 
 ##### CustomerVO
 
-> 没怎么用到
-
 ```java
 @Data
 public class CustomerVO {
@@ -260,6 +258,10 @@ public class CustomerVO {
     }
 }
 ```
+
+> 注意事项：
+>
+> 实体类中如果有有参构造器，则无参构造器必须显示给出，否则程序不会调用无参构造器
 
 这次使用了一个`ControllerAdvice`进行返回数据的统一处理，统一返回为`ResultVO`格式
 
@@ -419,6 +421,8 @@ public interface CustomerMapper extends BaseMapper<Customer>{
 ###### Service CRUD 接口
 
 `mybatis-plus`还为我们提供了封装好的`IService`接口，进一步提供`get`,`list`,`remove`,`page`等操作，想要仔细了解可以查看官方文档或者之间查看源码。
+
+> `BaseMapper`中一些以`entity`为参数传入时，`NOT NULL`的实体属性必须不能为空，不会调用自动填充功能。
 
 ##### 分页插件
 
