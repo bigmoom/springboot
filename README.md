@@ -20,6 +20,7 @@
 * [SpringBoot整合JPA](https://github.com/bigmoom/springboot/tree/main/springboot%E6%95%B4%E5%90%88JPA)
 * [SpringBoot整合mybatis](https://github.com/bigmoom/springboot/tree/main/springboot%E6%95%B4%E5%90%88mybatis)
 * [SpringBoot整合mybatis-plus](https://github.com/bigmoom/springboot/tree/main/springboot%E6%95%B4%E5%90%88mybatis-plus)
+* [SpringBoot使用AOP](https://github.com/bigmoom/springboot/tree/main/springboot-AOP)
 
 ### 个人博客
 
