@@ -2,9 +2,9 @@
 
 ### 缘由
 
-最近刚入职实习，后端开发岗，但是之前只是超级简单的用过`springboot`，所以只能重新系统的学习。
+最近刚入职实习，后端开发岗，但是之前只是超级简单的用过`springboot`，只能重新系统的学习。
 
-所以有了开这个学习模块的打算，希望自己能一遍写技术文档记录学习中的一些要点，一遍编码巩固自己的知识。
+所以有了开这个学习模块的打算，希望自己能一边写技术文档记录学习中的一些要点，一边编码巩固自己的知识。
 
 ### 开发环境
 
@@ -21,6 +21,7 @@
 * [SpringBoot整合mybatis](https://github.com/bigmoom/springboot/tree/main/springboot%E6%95%B4%E5%90%88mybatis)
 * [SpringBoot整合mybatis-plus](https://github.com/bigmoom/springboot/tree/main/springboot%E6%95%B4%E5%90%88mybatis-plus)
 * [SpringBoot使用AOP](https://github.com/bigmoom/springboot/tree/main/springboot-AOP)
+* [SpringBoot整合springsecurity](https://github.com/bigmoom/springboot/tree/main/springboot%E6%95%B4%E5%90%88springsecurity)
 
 ### 个人博客
 
