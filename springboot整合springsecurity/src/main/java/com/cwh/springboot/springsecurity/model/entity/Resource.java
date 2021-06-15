@@ -21,7 +21,4 @@ public class Resource {
     @TableField(value = "url")
     private String url;
 
-//  类型，1为接口，0为页面
-    @TableField(value = "type")
-    private Integer type;
 }

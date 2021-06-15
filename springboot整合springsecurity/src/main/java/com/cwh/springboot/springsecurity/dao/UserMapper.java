@@ -11,6 +11,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface UserMapper extends BaseMapper<UserEntity> {
 
-    public UserEntity selectByUserName(String name);
+     UserEntity selectByUserName(String name);
 
 }

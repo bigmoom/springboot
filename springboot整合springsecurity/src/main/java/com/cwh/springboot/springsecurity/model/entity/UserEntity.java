@@ -18,12 +18,13 @@ public class UserEntity implements Serializable {
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 
-    @TableId(type = IdType.INPUT)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
-    @TableField(value = "username")
-    private String username;
-    @TableField(value = "password")
-    private String password;
+    private String userName;
+
+    private String userPassword;
+
+    private Long roleId;
 
 }

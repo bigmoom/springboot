@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cwh.springboot.springsecurity.dao.ResourceMapper">
+
+
+    <select  id="selectResourceIdByUserId" parameterType="java.lang.Long" resultType="Long">
+        select
+               rr.resource_id
+        From
+            role_resource rr
+            inner join user u on u.role_id = rr.role_id
+        WHERE
+            u.id = #{id};
+    </select>
+</mapper>

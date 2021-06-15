@@ -17,6 +17,6 @@ public class Role {
     private  Long id;
 
 //  身份名称（超级管理员/数据管理员。。。）
-    @TableField(value = "name")
+    @TableField(value = "role_name")
     private String name;
 }

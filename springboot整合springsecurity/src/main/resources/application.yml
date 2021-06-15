@@ -4,13 +4,16 @@ spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/springboot?useUnicode=true&characterEncoding=utf-8&serverTimezone=GMT%2B8
+    username: root
+    password: 1234
 
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
-    mapper-locations: classpath:mapper/*Mapper.xml
-
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  mapper-locations: classpath:mapper/*Mapper.xml
 #设置秘钥，可以通过@Value("${security.jwt.sercurityKey}}")拿值
 security:
   jwt:
-    sercurityKey: cwh
+#    秘钥不能太短，至少4个字符
+    securityKey: database

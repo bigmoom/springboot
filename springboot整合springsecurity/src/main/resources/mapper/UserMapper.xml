@@ -5,8 +5,8 @@
 <mapper namespace="com.cwh.springboot.springsecurity.dao.UserMapper">
 
 
-    <select id="selectByUserName" resultType="UserEntity">
+    <select id="selectByUserName" resultType="com.cwh.springboot.springsecurity.model.entity.UserEntity">
         select * from `user`
-            where name =  #{name}
+            where user_name =  #{name}
     </select>
 </mapper>

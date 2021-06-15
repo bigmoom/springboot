@@ -106,6 +106,8 @@
 
 #### 登录认证
 
+##### 概念介绍
+
 首先我们先介绍几个概念
 
 ------
@@ -127,16 +129,15 @@
 了解了这几个概念之后就很好理解`springsecurity`的认证流程了：
 
 * 初次登录验证（验证密码是否相同）
-* 登录之后设置`authentication`，将其放入上下文中，代表该用户已登录。
+* 登录之后设置`authentication`，将其放入上下文`securityContext`中，代表该用户已登录。
 
-* 之后发出其他请求时，如果用户上下文中存在`authentication`即代表已登录。
+* 之后发出其他请求时，从`securityContextHolder`中获取`securityContext`，然后校验是否存在`authentication`，如果存在则代表通过认证，不存在则不通过。
 
-了解了认证流程之后，我们具体来看下`springsecurity`是如何完成认证的：
+我们可以看到，主要的任务便是如何设置`authentication`
 
-`spring security`使用`AuthenticationManager`组件进行登录认证，其校验逻辑非常简单：
+`springsecurity`提供了一个组件`AuthenticationManager`去实现这个功能，我们通过`authenticationManager.authenticate(...)`设置`authentication`
 
-* 根据用户名查询出用户对象
-* 将用户对象的密码与传入的密码进行校验
+但是，要想设置`authentication`我们还需要用户信息，以及如何对密码进行校验
 
 这里`spring security`又提供了三个组件
 
@@ -146,7 +147,288 @@
 
 `UserDetailsService` ：该接口提供`loadUserByusername`方法，用于通过用户名查询用户对象，我们只需要实现实现该接口，在`loadUserByusername()`完成我们的逻辑并返回`UserDetail`对象即可。
 
-`PasswordEncoder`：用于密码加密。
+`PasswordEncoder`：用于对密码进行加密。
 
 ***
+
+##### UserDetail
+
+```java
+@Getter
+@ToString
+@EqualsAndHashCode(callSuper = false)
+public class UserDetail extends User {
+//	实体类
+    private UserEntity userEntity;
+
+    public UserDetail(UserEntity userEntity, Collection<? extends GrantedAuthority> authorities) {
+//      调用父类的构造器方法，传入用户名，密码和权限列表
+        super(userEntity.getUserName(),userEntity.getUserPassword(),authorities);
+        this.userEntity = userEntity;
+    }
+}
+
+```
+
+我们这里自定义一个`UserDetail`类继承`spring security`为我们提供的`User`实现类
+
+通过调用父类构造器，我们便可以传入`username`,`password`，和权限列表
+
+> `@EqualsAndHashCode(callSuper = false)` 用来调用父类属性与子类属性一同生成`hashcode`
+
+
+
+##### UserServiceImpl
+
+```java
+@Service
+@Slf4j
+@Transactional(rollbackFor = Exception.class)
+public class UserServiceImpl extends ServiceImpl<UserMapper,UserEntity> implements UserService,UserDetailsService{
+
+    @Autowired
+    private ResourceService resourceService;
+
+    @Autowired
+    private JWTManager jwtManager;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+    /**
+     * 实现loadByUserName(),返回需要的userDetail
+     * @param name
+     * @return
+     * @throws UsernameNotFoundException
+     */
+    @Override
+    public UserDetails loadUserByUsername(String name) throws UsernameNotFoundException {
+//      调用mapper获取用户对象
+        UserEntity userEntity = baseMapper.selectByUserName(name);
+//      如果没查到，抛出异常
+        if(userEntity == null){
+            throw new UsernameNotFoundException("用户没有找到");
+        }
+//      获取用户权限列表
+
+        Set<SimpleGrantedAuthority> authorities = resourceService.getResourceByUserId(userEntity.getId())
+                .stream()
+                .map(String::valueOf)
+                .map(SimpleGrantedAuthority::new)
+                .collect(Collectors.toSet());
+//      返回我们需要的额userDetail对象
+        return new UserDetail(userEntity,authorities);
+    }
+
+```
+
+这里是我们的一个`service`的实现类，实现了`spring security`提供的`UserDetailService`，所以我们只需要实现`loadUserByUsername`即可获取我们需要的`userdetail`
+
+> 这只是部分代码，仅供认识，也可以结合源码理解
+
+> `Set<SimpleGrantedAuthority> authorities `这是我们之后用于权限验证的用户权限列表
+
+
+
+##### PasswordEncoder
+
+```java
+public interface PasswordEncoder {
+    /**
+ 	 * 加密
+ 	 */
+    String encode(CharSequence rawPassword);
+    /**
+ 	 * 将未加密的字符串（前端传递过来的密码）和已加密的字符串（数据库中存储的密码）进行校验
+ 	 */
+    boolean matches(CharSequence rawPassword, String encodedPassword);
+}
+```
+
+`PasswordEncoder`接口实现两个方法，加密和匹配
+
+加密用于我们注册的时候将用户输入的密码加密后存储在数据库中
+
+而匹配主要是用于登录认证时，我们将用户输入的密码与数据库中密码进行匹配
+
+```java
+@Bean
+public PasswordEncoder passwordEncoder() {
+    // 这里我们使用bcrypt加密算法，安全性比较高
+    return new BCryptPasswordEncoder();
+}
+```
+
+这里我们通过采用`BCrypt`加密实现自己的`passwordEncoder`
+
+
+
+##### 配置AuthenticationMangaer
+
+```java
+............   
+/**
+     * 配置Authenticationmanager
+     * @param auth
+     * @throws Exception
+     */
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth)throws Exception {
+//        添加自定义的userDetailService和passEncoder
+        auth.userDetailsService(userService).passwordEncoder(passwordEncoder());
+
+    }
+
+```
+
+我们在配置类中对`authenticationManagerBuilder`添加我们自定义的`userService`和`passwordEncoder`以构建我们需要的`authenticationManager`
+
+
+
+##### 认证异常处理器
+
+`spring security`也为我们提供了一些认证异常`AuthenticationException`已经对于这类认证异常的处理器`AuthenticationEntryPoint`，用于非`/login`请求的登录认证
+
+> ```java
+> //      如果没查到，抛出异常
+>         if(userEntity == null){
+>             throw new UsernameNotFoundException("用户没有找到");
+>         }
+> ```
+>
+> 这里我们抛出的`UsernameNotFoundException`即为`AuthenticationException`的一个具体实现类
+
+当用户访问资源时，如果抛出`AuthenticationException`，则会触发`ExceptionTranslationFilter`调用`AuthenticationEntryPoint`中的`commence()`来处理认证失败逻辑。
+
+我们只需要自定义一个类去实现`AuthenticationEntryPoint`接口即可
+
+```java
+@Slf4j
+public class MyEntryPoint implements AuthenticationEntryPoint {
+    @Override
+    public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException e) throws IOException {
+        log.error(e.getMessage());
+        response.setContentType("application/json;charset=utf-8");
+        PrintWriter out = response.getWriter();
+        ResultVO<String> resultVO = new ResultVO<>(ResultCode.UNAUTHORIZED, "没有登录");
+        out.write(resultVO.toString());
+        out.flush();
+        out.close();
+    }
+}
+```
+
+这里我们实现`commence()`返回**没有登录**的返回视图
+
+
+
+##### JWT
+
+我们前面说过了`session`，`token`，`cookie`的区别
+
+这里我们采用`JWT(JSON WEB TOKEN)`工具即采用`token` 的方法来进行除`/login`请求的登录认证
+
+> 我们这里要首先禁用一下`springsecurity`的`session`机制
+>
+> ```java
+>         // 禁用session
+> http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+> ```
+
+整体思路流程就是我们首次登录的时候，根据`username`生成`token`然后返回给前端，之后前端每次请求的时候将`token`放在`Header:Authorization`中。我们设置`loginFilter`，在请求之前对`token`进行验证，若解析成功则标明这个用户登录过，那么我们设置`authentication`放到上下文中，如果没有携带`token`或者解析失败，则抛出异常。
+
+```java
+//      请求头冲获取token
+//      放在'Authorization'中
+        Claims claims =jwtManager.parse(httpServletRequest.getHeader("Authorization"));
+//      如果不为空，则为上下文添加authentication
+        if(claims!=null){
+//          获取subject，即username  
+            String username = claims.getSubject();
+            UserDetails user = userService.loadUserByUsername(username);           
+//          设置authentication         
+            Authentication authentication = new UsernamePasswordAuthenticationToken(user,user.getPassword(),user.getAuthorities());
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+        }
+        filterChain.doFilter(httpServletRequest,httpServletResponse);
+    }
+```
+
+> `Claims`为`token`的载荷对象，包括了`token`中的具体信息，例如签发时间，过期时间，`subject`等等。
+
+这里`jwtManager`即为`token`的加密解密工具类
+
+```java
+@Slf4j
+@Component
+public class JWTManager {
+//	设置秘钥，这里通过配置文件中的值获取
+    @Value("${security.jwt.securityKey}")
+    private String securityKey;
+
+//  设置过期时间
+    private Duration expiration = Duration.ofDays(1);
+    /**
+     * 通过用户名加密
+     * @param name
+     * @return
+     */
+    public String generate(String name){
+        Date expiraDate =new Date(System.currentTimeMillis() + expiration.toMillis());
+
+        //构建token
+        return Jwts.builder()
+            	//过期时间
+                .setExpiration(expiraDate)
+            	//设置subject
+                .setSubject(name)
+            	//设置签发时间
+                .setIssuedAt(new Date())
+            	//设置加密算法和秘钥
+                .signWith(SignatureAlgorithm.HS512,securityKey)
+                .compact();
+    }
+
+    /**
+     * 解密，成功返回claims对象，失败返回null
+     * claims为对象存储token有效信息的载荷
+     * @param token
+     * @return
+     */
+    public Claims parse(String token){
+//      空字符串直接返回null
+//      代表当前没有携带token
+        if(!StringUtils.hasLength(token)){
+            return null;
+        }
+
+//      非空字符串则解析
+        Claims claims = null;
+
+        try{
+            claims = Jwts.parser()
+                    .setSigningKey(securityKey)
+                    .parseClaimsJws(token)
+                    .getBody();
+        }
+        catch(JwtException e){
+            log.error("解析失败",e.toString());
+        }
+        return claims;
+    }
+}
+```
+
+我们执行一下登录操作
+
+<img src="https://typora-cwh.oss-cn-hangzhou.aliyuncs.com/20210615181428.png" style="zoom:80%;" />
+
+可以看到`"token"`即为我们生成的`token`，这样我们下次请求的时候带上这个`token`即可以认证成功。
+
+<img src="https://typora-cwh.oss-cn-hangzhou.aliyuncs.com/20210615181634.png" style="zoom:80%;" />
+
+接下来我们改变一下`Authorization`中的值看看
+
+<img src="https://typora-cwh.oss-cn-hangzhou.aliyuncs.com/20210615181729.png" style="zoom:80%;" />
+
+可以很明显看到返回了没有登录的视图对象。
 
