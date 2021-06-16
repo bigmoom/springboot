@@ -8,12 +8,14 @@ import com.cwh.springboot.springsecurity.dao.UserMapper;
 import com.cwh.springboot.springsecurity.exception.MyException;
 import com.cwh.springboot.springsecurity.model.entity.UserEntity;
 import com.cwh.springboot.springsecurity.model.param.LoginParam;
+import com.cwh.springboot.springsecurity.model.param.UserParam;
 import com.cwh.springboot.springsecurity.model.vo.UserVO;
 import com.cwh.springboot.springsecurity.service.ResourceService;
 import com.cwh.springboot.springsecurity.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -82,5 +84,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper,UserEntity> implemen
                 .setToken(jwtManager.generate(user.getUserName()))
                 .setResourceIds(resourceService.getResourceByUserId(user.getId()));
         return userVO;
+    }
+
+
+    public void createUser(LoginParam loginParam){
+        UserEntity userEntity = new UserEntity();
+        userEntity.setUserName(loginParam.getUsername());
+        userEntity.setUserPassword(passwordEncoder.encode(loginParam.getPassword()));
+        userEntity.setRoleId(2L);
+        baseMapper.insert(userEntity);
     }
 }

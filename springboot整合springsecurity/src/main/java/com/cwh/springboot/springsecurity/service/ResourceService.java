@@ -3,6 +3,8 @@ package com.cwh.springboot.springsecurity.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.cwh.springboot.springsecurity.model.entity.Resource;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Set;
 
 /**
@@ -12,4 +14,6 @@ import java.util.Set;
 public interface ResourceService extends IService<Resource> {
 
     Set<Long> getResourceByUserId(Long userId);
+
+    void updateResources(Collection<Resource> resources);
 }

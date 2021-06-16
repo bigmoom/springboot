@@ -18,4 +18,6 @@ public interface UserService extends IService<UserEntity> {
      * @return  成功则返回UserVO，失败抛出异常
      */
     UserVO login(LoginParam user);
+
+    void createUser(LoginParam user);
 }

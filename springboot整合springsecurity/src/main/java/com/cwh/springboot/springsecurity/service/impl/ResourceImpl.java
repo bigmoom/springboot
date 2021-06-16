@@ -6,6 +6,7 @@ import com.cwh.springboot.springsecurity.model.entity.Resource;
 import com.cwh.springboot.springsecurity.service.ResourceService;
 import org.springframework.stereotype.Service;
 
+import java.util.Collection;
 import java.util.Set;
 
 /**
@@ -20,5 +21,10 @@ public class ResourceImpl extends ServiceImpl<ResourceMapper, Resource> implemen
     @Override
     public Set<Long> getResourceByUserId(Long userId) {
         return baseMapper.selectResourceIdByUserId(userId);
+    }
+
+    @Override
+    public void updateResources(Collection<Resource> resources) {
+            baseMapper.updateResources(resources);
     }
 }

@@ -1,12 +1,15 @@
 package com.cwh.springboot.springsecurity.config;
 
+import com.cwh.springboot.springsecurity.config.security.AuthFilter;
 import com.cwh.springboot.springsecurity.config.security.LogFilter;
+import com.cwh.springboot.springsecurity.config.security.MyDeniedHandler;
 import com.cwh.springboot.springsecurity.config.security.MyEntryPoint;
 import com.cwh.springboot.springsecurity.service.UserService;
 import com.cwh.springboot.springsecurity.service.impl.UserServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -32,6 +35,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Autowired
     private LogFilter loginFilter;
 
+    @Autowired
+    private AuthFilter authFilter;
+
     /**
      * 配置http请求
      * @param http
@@ -48,18 +54,23 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
 //
         http.authorizeRequests()
+//               配置前端跨域联调
                 .requestMatchers(CorsUtils::isPreFlightRequest).permitAll()
-
+//              /login接口不需要权限验证
                 .antMatchers("/login").permitAll()
-
+//              其他接口都需要权限验证
                 .antMatchers("/**").authenticated()
-
-                .and().exceptionHandling().authenticationEntryPoint(new MyEntryPoint());
+//              指定登录认证和权限验证错误处理器
+                .and().exceptionHandling()
+                .authenticationEntryPoint(new MyEntryPoint())
+                .accessDeniedHandler(new MyDeniedHandler());
 
         // 禁用session
         http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 
+//        添加登录认证和权限验证过滤器
         http.addFilterBefore(loginFilter, UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(authFilter,FilterSecurityInterceptor.class);
     }
 
     /**
@@ -72,6 +83,12 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 //        添加自定义的userDetailService和passEncoder
         auth.userDetailsService(userService).passwordEncoder(passwordEncoder());
 
+    }
+
+    @Bean
+    @Override
+    protected AuthenticationManager authenticationManager() throws Exception {
+        return super.authenticationManager();
     }
 
     @Bean

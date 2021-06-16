@@ -1,7 +1,9 @@
 package com.cwh.springboot.springsecurity.model.vo;
 
+import com.cwh.springboot.springsecurity.model.entity.UserEntity;
 import lombok.Data;
 import lombok.experimental.Accessors;
+import org.springframework.security.core.userdetails.User;
 
 import java.util.Set;
 
@@ -28,4 +30,6 @@ public class UserVO {
      * 当前用户的权限资源id集合
      */
     private Set<Long> resourceIds;
+
+
 }

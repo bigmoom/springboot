@@ -94,6 +94,8 @@
 
 ### SpringSecurity
 
+[程序源码](https://github.com/bigmoom/springboot/tree/main/springboot%E6%95%B4%E5%90%88springsecurity)
+
 `springboot`这类安全框架对于`web`系统的支持其实就是提供**基于一个个过滤组成的过滤器链**
 
 <img src="https://typora-cwh.oss-cn-hangzhou.aliyuncs.com/20210611145109.png" style="zoom: 67%;" />
@@ -103,6 +105,78 @@
 `springsecurity`的具体操作便是在过滤器链中添加一个`FilterChainProxy`过滤器，这个代理过滤器会为服务器创建一套`springsecurity`自定义的过滤器链。
 
 这样便会启用`springsecurity`默认的一些过滤器，类似`UsernamePasswordAuthenticationFilter`负责登录认证，`FilterSecurityInterceptor`负责权限授权。
+
+#### SQL
+
+本项目使用的表构建如下
+
+##### resource
+
+存放资源权限
+
+![](https://typora-cwh.oss-cn-hangzhou.aliyuncs.com/20210616181215.png)
+
+```sql
+CREATE TABLE `resource` (
+  `id` bigint NOT NULL COMMENT '权限id',
+  `url` varchar(64) NOT NULL COMMENT '权限url',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
+```
+
+##### role
+
+存放角色信息
+
+![](https://typora-cwh.oss-cn-hangzhou.aliyuncs.com/20210616181240.png)
+
+```sql
+CREATE TABLE `role` (
+  `role_id` bigint NOT NULL COMMENT '角色id',
+  `role_name` varchar(64) DEFAULT NULL COMMENT '角色名',
+  PRIMARY KEY (`role_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
+```
+
+##### user
+
+存放用户信息
+
+![](https://typora-cwh.oss-cn-hangzhou.aliyuncs.com/20210616181306.png)
+
+```sql
+CREATE TABLE `user` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '用户id',
+  `user_name` varchar(64) DEFAULT NULL COMMENT '用户名称',
+  `user_password` varchar(64) DEFAULT NULL COMMENT '用户密码',
+  `role_id` bigint NOT NULL COMMENT '角色id',
+  PRIMARY KEY (`id`),
+  KEY `role_id` (`role_id`),
+  CONSTRAINT `user_ibfk_1` FOREIGN KEY (`role_id`) REFERENCES `role` (`role_id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8
+```
+
+##### role_resource
+
+存放角色对应资源权限信息
+
+![](https://typora-cwh.oss-cn-hangzhou.aliyuncs.com/20210616181338.png)
+
+```sql
+
+CREATE TABLE `role_resource` (
+  `role_id` bigint NOT NULL COMMENT '角色id',
+  `resource_id` bigint NOT NULL COMMENT '权限id',
+  PRIMARY KEY (`role_id`,`resource_id`),
+  KEY `resource_id` (`resource_id`),
+  CONSTRAINT `role_resource_ibfk_1` FOREIGN KEY (`resource_id`) REFERENCES `resource` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `role_resource_ibfk_2` FOREIGN KEY (`role_id`) REFERENCES `role` (`role_id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
+```
+
+> 因为我们这里使用了外键，并且之后对于表有更新操作，所以我们设置`ON UPDATE CASCADE`开启更新级联
+
+
 
 #### 登录认证
 
@@ -284,7 +358,7 @@ public PasswordEncoder passwordEncoder() {
 
 
 
-##### 认证异常处理器
+##### 认证异常处理器 MyEntryPoint
 
 `spring security`也为我们提供了一些认证异常`AuthenticationException`已经对于这类认证异常的处理器`AuthenticationEntryPoint`，用于非`/login`请求的登录认证
 
@@ -418,6 +492,8 @@ public class JWTManager {
 }
 ```
 
+##### 运行结果
+
 我们执行一下登录操作
 
 <img src="https://typora-cwh.oss-cn-hangzhou.aliyuncs.com/20210615181428.png" style="zoom:80%;" />
@@ -431,4 +507,383 @@ public class JWTManager {
 <img src="https://typora-cwh.oss-cn-hangzhou.aliyuncs.com/20210615181729.png" style="zoom:80%;" />
 
 可以很明显看到返回了没有登录的视图对象。
+
+
+
+#### 权限验证
+
+`spring security`主要处理的便是接口的权限验证，即你是否有权限访问这个接口
+
+我们再来看下**接口授权**的流程
+
+1. 当一个请求过来时，我们要知道这个接口需要什么的权限能够访问
+2. 然后获取用户所具有的权限列表
+3. 校验用户是否具有访问这个接口的权限
+4. 如果有权限则放行，如果没有拒绝访问
+
+
+
+`spring security`整个授权过程都位于`FilterSecurityInterceptor`中：
+
+1. 调用`SecurityMetadataSource`获取当前请求所需权限
+
+2. 通过`authentication`获取用户具有的权限列表
+
+   >  `Set<SimpleGrantedAuthority> authorities`  `SET`中`SimpleGrantedAuthority`即为用户权限
+
+3. 调用`AccessDecisionManager`校验用户是否具有访问该接口的权限
+
+4. 如果有放行该用户，如果没有则抛出异常，被`AccessDeniedHandler`捕获处理
+
+##### SecurityMetadataSource
+
+`securityMetadataSource`主要是用于获取当前请求的权限`role_id`
+
+该接口有三个方法
+
+1. `Collection<ConfigAttribute> getAttributes(Object object)`该方法返回请求对象需要的权限信息
+
+   ```java
+   @Override
+       public Collection<ConfigAttribute> getAttributes(Object object) throws IllegalArgumentException {
+   
+   //        通过springsecurity 提供的FilterInvocation将httprequest封装保护起来
+           FilterInvocation filterInvocation = (FilterInvocation)object;
+           HttpServletRequest request = filterInvocation.getRequest();
+           //在RESOURCES中匹配到当前请求，并返回权限id
+           for(Resource resource: RESOURCES){
+   //            数据库中请求资源为 GET:/user 格式
+   //            冒号前为请求方式，冒号后为请求路径
+               String[] url = resource.getUrl().split(":");
+   //            通过Ant类来比较url是否匹配
+               AntPathRequestMatcher ant = new AntPathRequestMatcher(url[1]);
+               if(request.getMethod().equals(url[0]) && ant.matches(request)){
+                   return Collections.singletonList(new SecurityConfig(resource.getId().toString()));
+               }
+           }
+           return null;
+       }
+   ```
+
+   这里我们通过`FilterInvocation`将请求包装起来，然后获取请求对象，之后便将请求与`RESOURCE`中的权限信息匹配，返回该请求所需要的权限`id`，如果匹配失败则返回`null`
+
+2. `Collection<ConfigAttribute> getAllConfigAttributes()`该方法返回所有定义的权限资源，`SpringSecurity`会在启动的时候校验每个`ConfigAttribute`是否配置正确
+
+3. `boolean supports(Class<?> aClass)` 这个方法用于告知调用这个当前`SecurityMetadataSource`是否支持此类安全对象，只有返回值为`true`时才能调用`getAttributes()`
+
+这里我们还定义一个`Set<Resource>`存放所有的资源对象。这是为了将该存储对象放在内存中，避免每次做权限验证都要到数据库中获取资源信息。
+
+##### AccessDecisionManager
+
+`accessDecisionManager`该接口主要是提供了权限验证时的验证逻辑。
+
+主要是通过实现`decide()`方法实现
+
+```java
+    @Override
+    public void decide(Authentication authentication, 
+                       Object o, Collection<ConfigAttribute> configAttributes) 
+        throws AccessDeniedException, InsufficientAuthenticationException {
+//        如果所需权限为空则代表无须授权
+        if(configAttributes.isEmpty()){
+            return;
+        }
+        log.info("=========DecisionManager==========");
+//        判断授权规则是否与用户具有权限匹配
+        for(ConfigAttribute ca: configAttributes){
+            for(GrantedAuthority authority : authentication.getAuthorities()){
+//                匹配上了则代表有权限
+                if(Objects.equals(authority.getAuthority(),ca.getAttribute())){
+                    return;
+                }
+            }
+        }
+//        走到这里说明没有权限
+        throw new AccessDeniedException("没有权限");
+    }
+
+```
+
+该方法传入`authentication`和之前通过`securityMetadataSource`中`getAttributes()`获取的鉴权规则，通过循环匹配，一旦匹配成功则代表用户具有访问该资源的权限，如果没有匹配成功则代表用户权限列表中没有访问该资源的权限，所以抛出`AccessDeniedException()`交给`AccessDeniedHanlder`处理。
+
+##### AccessDeniedHandler
+
+该接口与登录认证里面`AuthenticationEntryPoint`类似，都是处理验证失败的情况
+
+我们实现`void handle()`方法
+
+```java
+    @Override
+    public void handle(HttpServletRequest requestequest, HttpServletResponse response, AccessDeniedException e) throws IOException, ServletException {
+//        写法与entrypoint类似
+        response.setContentType("application/json;charset=utf-8");
+        PrintWriter out = response.getWriter();
+        ResultVO<String> resultVO = new ResultVO<>(ResultCode.FORBIDDEN,"没有权限");
+        out.write(resultVO.toString());
+        out.flush();
+        out.close();
+    }
+```
+
+向前端返回没有权限的信息。
+
+##### AuthFilter
+
+所有用于权限验证的组件我都都已经介绍完毕，接下来便是要组装他们首先我们在`springsecurity`配置类中配置
+
+我们定义过滤器`AuthFilter`继承`springsecurity`提供的用于权限验证的`AbstractSecurityInteceptor`实现`Filter`
+
+```java
+public class AuthFilter extends AbstractSecurityInterceptor implements Filter {
+
+//    注入自定义securityMetadataSouce
+    @Autowired
+    private SecurityMetadataSource securityMetadataSource;
+
+//    实现abstract方法，将mysecuritymetadatasource注入decisionManager中
+    @Override
+    public SecurityMetadataSource obtainSecurityMetadataSource(){
+        return this.securityMetadataSource;
+    }
+
+//    注入我们自定义的decisionManager
+    @Autowired
+//    @Autowired注解在方法上表示在启动时先运行该方法，如果有返回值将返回值放到容器中
+//    这里自动装配会自动在容器中获取AccessDecisionManager的实现类然后运行
+    @Override
+    public void setAccessDecisionManager(AccessDecisionManager accessDecisionManager){
+        super.setAccessDecisionManager(accessDecisionManager);
+    }
+
+    @Override
+    public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) 
+        throws IOException, ServletException {
+        
+        FilterInvocation filterInvocation =
+            new FilterInvocation(servletRequest,servletResponse,filterChain);
+        InterceptorStatusToken token = super.beforeInvocation(filterInvocation);
+        
+        try{
+       filterInvocation.getChain()
+           .doFilter(filterInvocation.getRequest(),filterInvocation.getResponse());
+        } finally {
+            super.afterInvocation(token,null);
+        }
+    }
+
+    @Override
+    public Class<?> getSecureObjectClass() {
+        return FilterInvocation.class;
+    }
+
+    @Override
+    public void init(FilterConfig filterConfig){}
+
+    @Override
+    public void destroy(){}
+}
+```
+
+可以看到，我们首先注入自定义的`securityMetaDataSource`和`DecisionManager`
+
+之后核心逻辑便在`super.beforeInvocation(filterInvocation)`中
+
+我们来仔细看下具体的逻辑
+
+> ```java
+> Assert.notNull(object, "Object was null");
+> if (!this.getSecureObjectClass().isAssignableFrom(object.getClass())) {
+>             throw new IllegalArgumentException(
+>                 "Security invocation attempted for object "
+>                 + object.getClass().getName() 
+>                 + " but AbstractSecurityInterceptor only configured to support secure objects of type: "
+>                 + this.getSecureObjectClass());
+> ```
+>
+> 首先判断传入的对象是否是合法的`SecureObjectClass`
+>
+> 可以通过重写该方法定义合法对象
+>
+> ```java
+>     @Override
+>     public Class<?> getSecureObjectClass() {
+>         return FilterInvocation.class;
+>     }
+> ```
+
+> 验证通过之后我们获取`SecurityMetaDataSource`中存储的鉴权规则
+>
+> ```java
+> Collection<ConfigAttribute> attributes = this.obtainSecurityMetadataSource()
+>     											.getAttributes(object);
+> ```
+>
+> 之后我们由通过`authenticateIfRequired()`从上下文中获取`authentication`
+>
+> ```java
+>   Authentication authenticated = this.authenticateIfRequired();
+> ```
+>
+> 获取到鉴权规则和`authentication`之后便通过`attemptAuthorization()`调用`AccessDecisionManager`进行权限验证
+>
+> ```java
+> this.attemptAuthorization(object, attributes, authenticated);
+> ```
+>
+> ```java
+> private void attemptAuthorization(Object object, Collection<ConfigAttribute> attributes, Authentication authenticated) {
+>         try {
+>             this.accessDecisionManager.decide(authenticated, object, attributes);
+>         } catch (AccessDeniedException var5) {
+>            .....
+>         }
+>     }
+> ```
+
+这样我们的权限验证过滤器就设置完成了，只需要早配置类添加该过滤器即可使用
+
+```java
+http.addFilterBefore(authFilter,FilterSecurityInterceptor.class);
+```
+
+
+
+##### 权限
+
+对于权限我们使用注解的方式来设置
+
+```java
+@Target({ElementType.METHOD,ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Auth {
+    long id();
+    String name();
+}
+```
+
+```java
+@RestController
+@Slf4j
+@RequestMapping("/data")
+@Auth(id = 2000, name = "数据操作")
+public class DataController {
+
+    @GetMapping
+    @Auth(id=1,name="获取数据")
+    public String getData(){
+        return "获取数据成功";
+    }
+```
+
+> `GET:/data` 的权限就是`2000+1=2001`
+
+通过注解标识该接口所需要的权限，我们只需要在程序运行前扫描所有的接口，将对应接口的权限信息更新到数据库即可。
+
+于是，我们编写一个`ApplicationRunner`的实现类
+
+> `ApplicationRunner`该接口用来在程序启动时直接实行一段代码，通过实现该接口中的`run`方法完成
+
+```java
+@Component
+public class ApplicationStartup implements ApplicationRunner {
+//   用于获取接口信息
+    @Autowired
+   private RequestMappingInfoHandlerMapping requestMappingInfoHandlerMapping;
+
+    @Autowired
+    private ResourceService resourceService;
+
+
+    @Override
+    public void run(ApplicationArguments args) throws Exception {
+        List<Resource> list = getAuthResource();
+
+        if(list.isEmpty()){
+            return;
+        }
+
+//        权限放到缓存中
+        MySecurityMetadataSource.getRESOURCES().addAll(list);
+//        将资源数据批量添加到数据库中
+        resourceService.updateResources(list);
+    }
+
+    
+    private List<Resource> getAuthResource(){
+
+        List<Resource> list = new LinkedList<>();
+
+//      获取接口信息
+        Map<RequestMappingInfo, HandlerMethod> handlerMethodMap = requestMappingInfoHandlerMapping.getHandlerMethods();
+        handlerMethodMap.forEach((info,handlerMethod) ->{
+//          获取类上的权限值
+            Auth moduleAuth = handlerMethod.getBeanType().getAnnotation(Auth.class);
+//          获取方法上的权限值
+            Auth methodAuth = handlerMethod.getMethod().getAnnotation(Auth.class);
+
+            if(moduleAuth == null || methodAuth == null){
+                return;
+            }
+//          获取接口请求方法（GET/POST）
+            Set<RequestMethod> methods = info.getMethodsCondition().getMethods();
+//          生成url
+            String path = methods.toArray()[0]+":" + info.getPatternsCondition().getPatterns().toArray()[0];
+
+            Resource resource = new Resource();
+            resource.setUrl(path);
+//          设置权限值为类权限值加方法权限值
+            resource.setId(moduleAuth.id()+ methodAuth.id());
+            list.add(resource);
+
+        });
+        return list;
+    }
+}
+```
+
+我们这里注入了`RequestMappingInfoHandlerMapping`，该类用于获取接口信息，可以获取请求方式，接口所属类，接口注解以及所属类的注解等等
+
+` List<Resource> getAuthResource(){...}`该方法使我们自己定义的方法，通过`RequestMappingInfoHanlderMapping`遍历接口，获取对应`pattern`以及请求方式和所需要的权限`id`
+
+`run(ApplicationArguments args)`我们调用刚刚定义的`getAuthResource`获取所有接口所需要的权限对象列表，赋值给`MySecurityMetadataSource`中的`RESOURCE`达到将权限列表存到内存中的功能，再讲资源数据序列化写入数据库中
+
+##### 运行结果
+
+我们通过使用`yiyi`这个用户登录，该用户对应角色为**普通用户**，只有访问`GET:/data`的权限，对应权限`id`为`2001`
+
+<img src="https://typora-cwh.oss-cn-hangzhou.aliyuncs.com/20210616175055.png" style="zoom:80%;" />
+
+接着我们携带`token`访问`GET:/user`
+
+<img src="https://typora-cwh.oss-cn-hangzhou.aliyuncs.com/20210616175402.png" style="zoom:80%;" />
+
+可以看到访问被拒绝了，提示没有权限
+
+那么们再访问我们有权限的`GET:/data`
+
+<img src="https://typora-cwh.oss-cn-hangzhou.aliyuncs.com/20210616175454.png"  />
+
+可以看到通过了权限验证
+
+
+
+### 总结
+
+本章节只是简单的实现了`spring security`**登录认证**和**权限验证**功能，对于接口只是做了简单使用，没有实现完整的逻辑功能。
+
+#### 登录认证
+
+1. 初次登录完成账号密码验证
+2. 验证通过发放`token`给前端
+3. 前端每次请求带上该`token`
+4. 解析`token`，成功则构建`authentication`放到上下文中，失败则抛给`AuthenticationEntryPoint`处理
+
+#### 权限验证
+
+1. 获取当前请求所需要的权限
+2. 通过`authentication`获取用户具有的权限
+3. 调用`AccessDecisionManager`中`decide()`判断用户具有的权限列表中是否能匹配到接口请求需要的权限
+4. 匹配成功则放行，不成功则抛给`AccessDeniedHanlder`处理
+
+其实`springsecurity`的内容非常多，不是一时半会就能讲完的，这些只能说是暂时够用，等以后有空的时候还是要深入学习的。
 

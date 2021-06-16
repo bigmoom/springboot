@@ -14,4 +14,14 @@
         WHERE
             u.id = #{id};
     </select>
+
+    <update id="updateResources" parameterType="java.util.Collection">
+        <foreach collection="resources" item="resource" open=""  close="" separator=";">
+            update  resource
+            <set>
+                id = #{resource.id}
+            </set>
+            where url = #{resource.url}
+        </foreach>
+    </update>
 </mapper>
