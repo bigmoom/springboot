@@ -347,6 +347,17 @@ public class ResourceConfig extends ResourceServerConfigurerAdapter {
 
 `ResourceServerConfigurerAdapter`内部关联了`ResourceServerSecurityConfigurer`和`HttpSecurity`
 
+可以配置以下功能：
+
+1. `tokenServices`：定义令牌服务的`Bean`（`ResourceServerTokenService`的实例）
+2. `resourceId`：资源`id`
+3. 资源服务器的其他扩展点（例如`tokenExtractor`用于从传入请求中获取令牌）
+4. 请求受保护资源的匹配器 （默认为全部）
+5. 受保护资源的访问规则（默认为普通的`authenticated`）
+6. `Spring Security` 中 `HttpSecurity` 配置器所允许的受保护资源的其他自定义情况
+
+这里我们简单配置以下`reourceId`和`tokenServices`
+
 ##### ResourceServerSecurityConfigurer
 
 用于资源服务器的配置
@@ -366,6 +377,42 @@ public class ResourceConfig extends ResourceServerConfigurerAdapter {
 
 `tokenStore`：设置`token`的存储方式
 
+##### RemoteTokenServices
+
+资源服务器的主要逻辑流程便是对传入请求携带的令牌进行验证，验证通过则放行，验证失败则报错
+
+`ResourceServerTokenServices`便是主要完成验证的工作
+
+如果资源服务器和授权服务器放在同一个应用中，那么授权服务器通过`AuthorizationServerEndpointsConfigurer`默认构建了`DefaultTokenServices`，它实现了所有必要的接口。
+
+如果我们的资源服务器是一个单独的应用程序，那么我们必须要确保能够匹配授权服务器的功能，并提供知道如何正确解码`token`的`ResourceServerTokenServices`。
+
+我们这里使用的是`RemoteTokenServices`，允许资源服务器通过授权服务器`/oauth/check_token`上的`HTTP`资源来进行解码，这适用于资源服务器没有大量流量，或者可以负担缓存结果（因为每个请求都必须使用授权服务器进行验证）。
+
+```java
+    @Primary
+    @Bean
+    public RemoteTokenServices remoteTokenServices(){
+        final RemoteTokenServices remoteTokenServices = new RemoteTokenServices();
+//      设置/oauth/check_token端口
+        remoteTokenServices.setCheckTokenEndpointUrl("http://localhost:8080/oauth/check_token");
+//      设置客户端信息
+        remoteTokenServices.setClientId("client-a");
+        remoteTokenServices.setClientSecret("client-a-secret");
+        return remoteTokenServices;
+    }
+```
+
+> `@Primary`用于一个接口有多个实现`Bean`的情况，装载时若没`@Qualifier`特殊说明则优先装载
+
+这里我们新建了`RemoteTokenServices`对象
+
+设置授权服务器中`/oauth/check_token`对应`URL`
+
+设置了客户端信息
+
+这样每当有请求携带`token`过来时，资源服务器都会访问授权服务器中`/oauth/check_token`端口解析令牌
+
 
 
 ##### HttpSecurity
@@ -382,6 +429,8 @@ public class ResourceConfig extends ResourceServerConfigurerAdapter {
                 .anyRequest().authenticated();
     }
 ```
+
+
 
 
 
@@ -415,3 +464,12 @@ public class ResourceConfig extends ResourceServerConfigurerAdapter {
 
 发现访问接口成功
 
+
+
+### 总结
+
+这次主要是了解了`OAuth2`和如何在`springsecurity`中简单的实现`OAuth2`。
+
+对于授权服务器，我这里只是简单的存在内存中，更合理的话应该是自定义`tokenStore`并且存在`Redis`中
+
+对于资源服务器，由于我是`demo`使用，所以简单使用了`remoteTokenServices`，实际操作中还是建议使用自定义的`DefaultTOkenService`实现自解码。
