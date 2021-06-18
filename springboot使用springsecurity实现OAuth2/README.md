@@ -419,6 +419,8 @@ public class ResourceConfig extends ResourceServerConfigurerAdapter {
 
 这就是我们之前`spring security`中配置的内容，用于配置一些访问规则，这里就不在赘述
 
+> `WebSecurityConfigurerAdapter`中的配置优先级高于`ResourceServerConfigurerAdapter`中的配置
+
 ```java
     @Override
     public void configure(HttpSecurity http) throws Exception {
