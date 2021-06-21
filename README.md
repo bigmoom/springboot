@@ -23,6 +23,7 @@
 * [SpringBoot使用AOP](https://github.com/bigmoom/springboot/tree/main/springboot-AOP)
 * [SpringBoot整合springsecurity](https://github.com/bigmoom/springboot/tree/main/springboot%E6%95%B4%E5%90%88springsecurity)
 * [SpringBoot整合springsecurity实现OAuth2](https://github.com/bigmoom/springboot/tree/main/springboot%E4%BD%BF%E7%94%A8springsecurity%E5%AE%9E%E7%8E%B0OAuth2)
+* [SpringBoot整合redis实现缓存](https://github.com/bigmoom/springboot/tree/main/springboot%E6%95%B4%E5%90%88Redis)
 
 ### 个人博客
 
