@@ -14,9 +14,7 @@ import java.util.List;
  */
 public interface CustomerMapper extends BaseMapper<Customer> {
 
+    List<Customer> getAll();
 
-    Integer addCustomer(@Param("customer") Customer customer);
-
-    List<Customer> selectByAge(@Param("ew") Wrapper<Customer> Wrapper);
-
+    Customer getByName(@Param("ew")Wrapper<Customer> wrapper);
 }

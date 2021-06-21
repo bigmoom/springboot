@@ -3,6 +3,7 @@ package com.cwh.springboot.redis.config;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.CacheManager;
@@ -45,7 +46,7 @@ public class RedisConfig extends CachingConfigurerSupport {
         defaultCacheConfig.entryTtl(Duration.ofDays(1));
 
 //        也可以通过builder来构建
-//        RedisCacheManager redisCacheManager = RedisCacheManager.builder(redisConnectionFactory).cacheDefaults(defaultCacheConfig).transactionAware().build();
+//       RedisCacheManager redisCacheManager = RedisCacheManager.builder(redisConnectionFactory).cacheDefaults(defaultCacheConfig).transactionAware().build();
         return new RedisCacheManager(redisCacheWriter,defaultCacheConfig);
 
     }
@@ -55,6 +56,7 @@ public class RedisConfig extends CachingConfigurerSupport {
      * @param factory
      * @return
      */
+    @Bean
     public RedisTemplate<String,Object> redisTemplate(RedisConnectionFactory factory){
         RedisTemplate<String,Object> redisTemplate = new RedisTemplate<>();
 
@@ -64,10 +66,17 @@ public class RedisConfig extends CachingConfigurerSupport {
         Jackson2JsonRedisSerializer jackson2JsonRedisSerializer = new Jackson2JsonRedisSerializer(Object.class);
 //        配置ObjecetMapper
         ObjectMapper om = new ObjectMapper();
-//        ?
-//        解决查询缓存转换异常的问题
+
+//        指定要序列化的域，field,get和set,以及修饰符范围，ANY是都有包括private和public
+//        setVisibility(forMethod,visibility)
+//        用来替换默认序列化检测（默认public fileds或者public getXXX()）
+//        formethod 为受影响属性（field/getter/setter）
+//        visibility 设置属性最小设定（可以是PUBLIC,ANY,PRIVATE）
         om.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
-        om.enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL);
+//      指定序列化输入的类型，类必须是非final修饰的，final修饰的类，比如String,Integer等会跑出异常
+//      弃用，换用activeDefaultTyping(PolymorphicTypeValidator,ObjectMapper.DefaultTyping,JsonTypeInfo.As)
+//        om.enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL);
+        om.activateDefaultTyping(LaissezFaireSubTypeValidator.instance,ObjectMapper.DefaultTyping.NON_FINAL);
         jackson2JsonRedisSerializer.setObjectMapper(om);
 //        配置redistemplate序列化
         RedisSerializer stringSerializer = new StringRedisSerializer();

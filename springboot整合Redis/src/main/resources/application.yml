@@ -26,11 +26,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/springboot?characterEncoding=utf-8&serverTimezone=GMT%2B8
     username: root
-    password:1234
-
-  cache:
-    type: redis
-
+    password: 1234
 
 mybatis-plus:
   configuration:
@@ -38,3 +34,11 @@ mybatis-plus:
     log.impl: org.apache.ibatis.logging.stdout.StdOutImpl
   type-aliases-package: com.cwh.springboot.redis.model.entity
   mapper-locations: classpath:mapper/*Mapper.xml
+
+  cache:
+    type: redis
+
+
+
+server:
+  port: 8090
