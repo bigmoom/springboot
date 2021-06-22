@@ -1,0 +1,30 @@
+spring:
+  redis:
+    #    数据库索引，默认为0
+    database: 0
+    #    redis host ip
+    host: 192.168.56.129
+    #    redis  连接端口
+    port: 6379
+    #    服务器连接密码（默认为空）
+    password:
+    #    连接超时时间（毫秒）
+    timeout: 1000
+#    jedis:
+#      #      连接池配置
+#      pool:
+#        #        连接池最大连接数
+#        max-active: 8
+#        #        连接池最大阻塞等待时间（负值表示没有限制）
+#        max-wait: -1
+#        #        连接池最大空闲连接
+#        max-idle: 8
+#        #        连接池最小空闲连接
+#        min-idl: 0
+
+#设置springsession存储类型，默认为redis
+  session:
+    store-type: redis
+
+server:
+  port: 8090
