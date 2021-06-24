@@ -25,6 +25,7 @@
 * [SpringBoot整合springsecurity实现OAuth2](https://github.com/bigmoom/springboot/tree/main/springboot%E4%BD%BF%E7%94%A8springsecurity%E5%AE%9E%E7%8E%B0OAuth2)
 * [SpringBoot整合redis实现缓存](https://github.com/bigmoom/springboot/tree/main/springboot%E6%95%B4%E5%90%88Redis)
 * [SpringBoot整合springsession实现session共享](https://github.com/bigmoom/springboot/tree/main/springboot%E6%95%B4%E5%90%88springsession%E5%AE%9E%E7%8E%B0session%E5%85%B1%E4%BA%AB)
+* [SpringBoot整合RabbitMQ](https://github.com/bigmoom/springboot/tree/main/springboot%E6%95%B4%E5%90%88rabbitmq)
 
 ### 个人博客
 
