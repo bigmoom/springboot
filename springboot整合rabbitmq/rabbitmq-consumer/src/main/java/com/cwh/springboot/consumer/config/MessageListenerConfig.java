@@ -33,7 +33,6 @@ public class MessageListenerConfig {
         container.setAcknowledgeMode(AcknowledgeMode.MANUAL);
 //      设置queue
         container.setQueueNames("TestQueue");
-
         container.setMessageListener(myMessageListener);
 
         return container;

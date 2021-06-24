@@ -15,6 +15,11 @@ import org.springframework.context.annotation.Configuration;
 public class QueueConfig {
 
     @Bean
+    public Queue directQueue(){
+        return new Queue("DirectQueue");
+    }
+
+    @Bean
     public Queue fanQueueA(){
         return new Queue("FanQueueA");
     }

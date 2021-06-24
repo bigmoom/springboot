@@ -26,7 +26,7 @@ public class MyMessageListener implements ChannelAwareMessageListener {
             channel.basicAck(deliveryTag,true);
 
         }catch (Exception e){
-            channel.basicReject(deliveryTag,false);
+            channel.basicNack(deliveryTag,false,true);
             e.printStackTrace();
         }
     }

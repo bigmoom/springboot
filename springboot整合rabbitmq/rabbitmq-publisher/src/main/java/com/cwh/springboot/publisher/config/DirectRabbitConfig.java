@@ -32,8 +32,9 @@ public class DirectRabbitConfig {
         return new Queue("DirectQueue",true);
     }
 
+    @Bean
     public Queue testQueue(){
-        return  new Queue("TestQueue");
+        return  new Queue("TestQueue",true);
     }
     /**
      * 设置交换机
