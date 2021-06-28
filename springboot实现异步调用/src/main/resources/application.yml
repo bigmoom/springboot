@@ -1,0 +1,31 @@
+server:
+  port: 8080
+spring:
+  task:
+    execution-one:
+#     线程池中线程前缀
+      thread-name-prefix: threadpool01-
+#     线程池相关属性
+      pool:
+        core-size: 8
+        max-size: 20
+        keep-alive: 60s
+        queue-capacity: 200
+        allow-core-thread-timeout: true
+#     关闭时设置
+    shutdown:
+      await-termination: true
+      await-termination-period: 60
+
+    execution-two:
+      thread-name-prefix: threadpool02-
+      pool:
+        core-size: 8
+        max-size: 20
+        keep-alive: 60s
+        queue-capacity: 200
+        allow-core-thread-timeout: true
+      shutdown:
+        await-termination: true
+        await-termination-period: 60
+
