@@ -7,6 +7,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Service;
 import org.springframework.util.concurrent.ListenableFuture;
+import org.springframework.util.concurrent.ListenableFutureTask;
 
 import java.util.concurrent.Future;
 
@@ -46,27 +47,27 @@ public class TaskServiceImpl implements TaskService {
         this.execute02();
     }
 
-    @Async
+    @Async(AsyncConfig.EXECUTOR_ONE_NAME)
     @Override
     public Future<Integer> asyncExecuteWithValue01() {
         return AsyncResult.forValue(this.execute01());
     }
 
-    @Async
+    @Async(AsyncConfig.EXECUTOR_TWO_NAME)
     @Override
     public Future<Integer> asyncExecuteWithValue02() {
         return AsyncResult.forValue(this.execute02());
-
     }
 
 
-    @Async
+    @Async(AsyncConfig.EXECUTOR_ONE_NAME)
     public ListenableFuture<Integer>  asyncExecuteWithListenableFuture(){
         try{
             return AsyncResult.forValue(this.execute01());
         }catch(Throwable ex){
             return AsyncResult.forExecutionException(ex);
         }
+
     }
 
     @Async

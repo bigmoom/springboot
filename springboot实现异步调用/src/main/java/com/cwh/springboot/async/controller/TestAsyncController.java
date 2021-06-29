@@ -41,7 +41,7 @@ public class TestAsyncController {
 
     @GetMapping("/async")
     public void asyncTask01() throws InterruptedException {
-        log.info("=========同步任务===========");
+        log.info("=========异步任务===========");
         long start = System.currentTimeMillis();
         log.info("=========开始执行===========");
 
@@ -55,7 +55,7 @@ public class TestAsyncController {
 
     @GetMapping("/async02")
     public void asyncTask02() throws InterruptedException, ExecutionException {
-        log.info("=========同步任务===========");
+        log.info("=========异步任务===========");
         long start = System.currentTimeMillis();
         log.info("=========开始执行===========");
 
@@ -63,8 +63,9 @@ public class TestAsyncController {
         Future<Integer> task02 = taskService.asyncExecuteWithValue02();
 
 //        阻塞等待结果
-        task01.get();
-        task02.get();
+        log.info(task01.get().toString());
+        log.info(task02.get().toString());
+
 
         long end = System.currentTimeMillis();
         log.info("=========执行完毕===========");
@@ -73,11 +74,12 @@ public class TestAsyncController {
 
     @GetMapping("/async03")
     public void asyncTask03() throws ExecutionException, InterruptedException {
-        log.info("=========同步任务===========");
+        log.info("=========异步任务===========");
         long start = System.currentTimeMillis();
         log.info("=========开始执行===========");
 
         ListenableFuture<Integer> listenableFuture = taskService.asyncExecuteWithListenableFuture();
+//        添加成功回调和失败回调
         listenableFuture.addCallback((result)->{log.info("========success&result={}=============",(result));},
                                     (ex)->{log.info("============failure&发生异常");});
 
