@@ -7,15 +7,15 @@ spring:
       thread-name-prefix: threadpool01-
 #     线程池相关属性
       pool:
-        core-size: 8
-        max-size: 20
-        keep-alive: 60s
-        queue-capacity: 200
-        allow-core-thread-timeout: true
+        core-size: 8 #核心线程数，线程池创建时初始化的线程数，默认为8
+        max-size: 20 #最大线程数，当缓存队列满了之后才会申请超过核心线程数的线程
+        keep-alive: 60s #允许线程的空闲时间，非核心线程的线程达到时间后会被销毁，默认为60s
+        queue-capacity: 200 #缓冲队列大小，用来缓冲执行任务队列的大小
+        allow-core-thread-timeout: true #是否允许核心线程超时，即开启线程池的动态增长和减小，默认为true
 #     关闭时设置
     shutdown:
-      await-termination: true
-      await-termination-period: 60
+      await-termination: true #应用关闭时，是否等待定时任务执行完成
+      await-termination-period: 60 #等待任务完成的最大时长
 
     execution-two:
       thread-name-prefix: threadpool02-

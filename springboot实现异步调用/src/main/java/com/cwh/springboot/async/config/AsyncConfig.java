@@ -85,8 +85,7 @@ public class AsyncConfig  implements AsyncConfigurer {
         builder = builder.awaitTerminationPeriod(shutdown.getAwaitTerminationPeriod());
         // 其它基本属性
         builder = builder.threadNamePrefix(properties.getThreadNamePrefix());
-//        builder = builder.customizers(taskExecutorCustomizers.orderedStream()::iterator);
-//        builder = builder.taskDecorator(taskDecorator.getIfUnique());
+
         return builder;
     }
 
